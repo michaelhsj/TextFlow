@@ -14,3 +14,9 @@ variable "zone" {
   type        = string
   default     = "northamerica-northeast1-a"
 }
+
+variable "react_port" {
+  description = "Port exposed by the React container."
+  type        = number
+  default     = 3000
+}
