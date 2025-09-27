@@ -13,6 +13,10 @@ provider "google" {
   zone    = var.zone
 }
 
+terraform {
+  backend "gcs" {}
+}
+
 # Derive the dev image reference the VM should pull from Artifact Registry
 locals {
   react_image = "${var.region}-docker.pkg.dev/${var.project_id}/${google_artifact_registry_repository.textflow-react.repository_id}/dev:latest"
@@ -169,3 +173,4 @@ resource "google_service_account_iam_binding" "github_actions_sa_binding" {
     "principalSet://iam.googleapis.com/${google_iam_workload_identity_pool.github_actions_pool_2.name}/attribute.repository/shamsimuhaimen/textflow_ui"
   ]
 }
+
