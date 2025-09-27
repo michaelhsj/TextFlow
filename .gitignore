@@ -1,8 +1,25 @@
+# Ignore macOS system files     
 .*
+.DS_Store
 
+# Byte-compiled python files
 *.pyc
 __pycache__/
 
+# Virtual environments
 .venv/
 env/
 venv/
+
+# Terraform
+*.tfvars
+.terraform/
+*.tfstate
+*.tfstate.backup
+crash.log
+override.tf
+override.tf.json
+*_override.tf
+*_override.tf.json
+.terraformrc
+terraform.rc
