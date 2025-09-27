@@ -52,6 +52,7 @@ resource "google_compute_instance" "default" {
         containers:
           - name: textflow-ui
             image: ${local.react_image}
+            imagePullPolicy: Always
             ports:
               - name: http
                 hostPort: ${var.react_port}
@@ -173,4 +174,3 @@ resource "google_service_account_iam_binding" "github_actions_sa_binding" {
     "principalSet://iam.googleapis.com/${google_iam_workload_identity_pool.github_actions_pool_2.name}/attribute.repository/shamsimuhaimen/textflow_ui"
   ]
 }
-
