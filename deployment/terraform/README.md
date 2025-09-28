@@ -1,6 +1,12 @@
 # Terraform setup for TextFlow
 
-This Terraform setup deploys a Google Compute Engine instance.
+* This Terraform setup deploys a Google Compute Engine instance.
+* The process for updating the React Docker image being run on the instance is:
+   * Merge/Rebase a change on to `textflow_ui/main`.
+   * A Github Action will build a Docker image and push it to GC Artifact Registry.
+   * Compute Engine instance will pick it up on reboot.
+* There is only one development environment, but we may separate to dev and prod if needed.
+* Terraform state is stored in GCS bucket.
 
 ## Prerequisites
 
@@ -14,26 +20,18 @@ This Terraform setup deploys a Google Compute Engine instance.
    terraform init
    ```
 
-2. Create a `terraform.tfvars` file with your project ID:
+2. Export the project ID as an environment variable before planning or applying:
    ```
-   project_id = "your-gcp-project-id"
+   export TF_VAR_project_id="your-gcp-project-id"
    ```
-
-   Optionally override `region`, `zone`, or `react_port` if you need values other than the defaults.
-
-   The compute instance automatically pulls the image at
-   `REGION-docker.pkg.dev/PROJECT/textflow-react/dev:tag`. Push a container
-   image to that path after the repository is created and the VM will pick it
-   up on the next pull attempt.
 
 3. Apply the Terraform configuration:
    ```
    terraform apply
    ```
 
-4. The IP address of the instance will be output after the apply is complete.
-
-5. To destroy the infrastructure:
+4. The IP address of the instance will be output after the apply is complete. To see it without applying, run:
    ```
-   terraform destroy
+   terraform show
    ```
+   
