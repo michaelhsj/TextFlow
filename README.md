@@ -9,3 +9,14 @@ An end-to-end MLops pipeline project focused on optical character recognition pr
 - **deployment**: Terraform scripts and Dockerfiles used to deploy the model and service to GCP.
 
 Details are available in each directory's `README.md`.
+
+# Setup venv
+```
+python -m venv venv-textflow
+source venv-texflow/bin/activate
+pip install -r requirements.txt
+```
+ Update `requirements.txt` with only the necessary packages. Bloat is not free because deployed Docker images will be larger: 
+ ```
+ pip freeze > requirements.txt
+ ```
