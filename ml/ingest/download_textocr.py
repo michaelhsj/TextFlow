@@ -7,21 +7,22 @@ import shutil
 # --- Configuration ---
 
 # Base directory for the TextOCR content (will be created)
-DATASET_BASE_DIR = os.path.join("TextFlow", "TextOCR")
+DATASET_BASE_DIR = os.path.join("dataset", "TextOCR")
 
 # Target directories for specific file types
-IMAGE_DIR = os.path.join(DATASET_BASE_DIR, "train_val_images")
+IMAGE_EXTRACT_DIR = os.path.join(DATASET_BASE_DIR, "train_val_images")
 JSON_DIR = DATASET_BASE_DIR
 
 # Official Download Links (TextOCR v0.1)
 DOWNLOAD_URLS = {
     "images": "https://dl.fbaipublicfiles.com/textvqa/images/train_val_images.zip",
     "train_json": "https://dl.fbaipublicfiles.com/textvqa/data/textocr/TextOCR_0.1_train.json",
-    "val_json": "https://dl.fbaipublicfiles.com/textvqa/data/textocr/TextOCR_0.1_val.json"
+    "val_json": "https://dl.fbaipublicfiles.com/textvqa/data/textocr/TextOCR_0.1_val.json",
 }
 
 
 # --- Helper Functions ---
+
 
 def download_file(url, local_path):
     """Downloads a file from a URL to a local path."""
@@ -31,17 +32,20 @@ def download_file(url, local_path):
         response = requests.get(url, stream=True, timeout=300)
         response.raise_for_status()
 
-        total_size = int(response.headers.get('content-length', 0))
+        total_size = int(response.headers.get("content-length", 0))
         downloaded_size = 0
 
-        with open(local_path, 'wb') as f:
+        with open(local_path, "wb") as f:
             for chunk in response.iter_content(chunk_size=8192):
                 if chunk:
                     f.write(chunk)
                     downloaded_size += len(chunk)
                     # Simple progress indicator for large files
                     if total_size > 0 and downloaded_size % (total_size // 100) < 8192:
-                        print(f"\r   Progress: {downloaded_size / total_size * 100:.2f}%", end='')
+                        print(
+                            f"\r   Progress: {downloaded_size / total_size * 100:.2f}%",
+                            end="",
+                        )
             print("\r   ...Download complete. (100.00%)")
 
     except requests.exceptions.RequestException as e:
@@ -54,7 +58,7 @@ def extract_zip(zip_path, extract_dir):
     """Extracts a zip file to the specified directory."""
     print(f"-> Extracting {os.path.basename(zip_path)} to {extract_dir}...")
     try:
-        with zipfile.ZipFile(zip_path, 'r') as zip_ref:
+        with zipfile.ZipFile(zip_path, "r") as zip_ref:
             zip_ref.extractall(extract_dir)
         print("   ...Extraction complete.")
     except Exception as e:
@@ -65,34 +69,41 @@ def extract_zip(zip_path, extract_dir):
 
 # --- Main Logic ---
 
+
 def setup_and_download_textocr():
     """Checks for existing files and downloads/extracts missing components."""
 
     # 1. Create necessary directories
-    os.makedirs(IMAGE_DIR, exist_ok=True)
+    os.makedirs(IMAGE_EXTRACT_DIR, exist_ok=True)
     os.makedirs(JSON_DIR, exist_ok=True)
     print(f"Ensured directories exist under: {DATASET_BASE_DIR}")
     print("--------------------------------------------------")
 
     # 2. Download Images
     images_zip_name = "train_val_images.zip"
-    images_zip_path = os.path.join(IMAGE_DIR, images_zip_name)
+    images_zip_path = os.path.join(DATASET_BASE_DIR, images_zip_name)
 
     # TextOCR images are in a single zip, which extracts into a 'train_val_images' folder,
     # but the JSON paths expect the images in 'train_val_images/train_images' (as described in your prompt).
     # The official zip extracts into a folder structure that includes a 'train' directory.
     # We target the parent directory of the final images folder for extraction.
-    target_image_folder = os.path.join(IMAGE_DIR, 'train')  # Assuming the zip extracts a 'train' folder
-
-    if os.path.isdir(target_image_folder) and len(os.listdir(target_image_folder)) > 1000:
-        print(f"✅ Images appear to be downloaded and extracted in: {target_image_folder}")
+    target_image_folder = os.path.join(
+        IMAGE_EXTRACT_DIR, "train_images"
+    )  # Assuming the zip extracts a 'train' folder
+    if (
+        os.path.isdir(target_image_folder)
+        and len(os.listdir(target_image_folder)) > 1000
+    ):
+        print(
+            f"✅ Images appear to be downloaded and extracted in: {target_image_folder}"
+        )
     else:
         # Download
         if download_file(DOWNLOAD_URLS["images"], images_zip_path):
             # Extract
             # Note: The 'train_val_images.zip' contains a structure that leads to the final images.
             # We extract it to IMAGE_DIR.
-            if extract_zip(images_zip_path, IMAGE_DIR):
+            if extract_zip(images_zip_path, IMAGE_EXTRACT_DIR):
                 # Clean up the zip file (optional)
                 os.remove(images_zip_path)
                 print(f"   Removed temporary zip file: {images_zip_name}")
@@ -103,7 +114,7 @@ def setup_and_download_textocr():
 
     json_files = {
         "train_json": "TextOCR_0.1_train.json",
-        "val_json": "TextOCR_0.1_val.json"
+        "val_json": "TextOCR_0.1_val.json",
     }
 
     for key, filename in json_files.items():

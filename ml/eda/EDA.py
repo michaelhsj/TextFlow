@@ -7,6 +7,7 @@ from collections import defaultdict, Counter
 
 # --- Utility Functions ---
 
+
 def shoelace_area(points):
     """
     Calculates the area of a non-self-intersecting polygon given its vertices
@@ -51,11 +52,12 @@ def calculate_angle(p1, p2):
 
 # --- Main EDA Functions ---
 
+
 def load_data(json_path):
     """Loads the TextOCR JSON file."""
     print(f"Loading data from {json_path}...")
     try:
-        with open(json_path, 'r') as f:
+        with open(json_path, "r") as f:
             data = json.load(f)
         return data
     except FileNotFoundError:
@@ -71,39 +73,43 @@ def analyze_all_characteristics(data, output_folder):
         return
 
     # Extract all annotations for processing
-    annotations = list(data.get('anns', {}).values())
-    images = data.get('imgs', {})
+    annotations = list(data.get("anns", {}).values())
+    images = data.get("imgs", {})
 
     if not annotations or not images:
         print("Error: JSON data is missing 'anns' or 'imgs' keys.")
         return
 
     # 1. Bounding Box Point Number Distribution
-    point_counts = Counter(len(ann['points']) // 2 for ann in annotations)
+    point_counts = Counter(len(ann["points"]) // 2 for ann in annotations)
 
     print("\n--- 1. Bounding Box Point Number Distribution ---")
     print(f"Total Annotations: {len(annotations)}")
     print("Point counts (number of vertices per polygon):")
     for count, freq in sorted(point_counts.items()):
-        print(f"  {count} points (Quad/Poly): {freq} ({freq / len(annotations) * 100:.2f}%)")
+        print(
+            f"  {count} points (Quad/Poly): {freq} ({freq / len(annotations) * 100:.2f}%)"
+        )
 
     # Visualization (Placeholder)
     plt.figure(figsize=(8, 5))
     plt.bar(point_counts.keys(), point_counts.values())
-    plt.title('Distribution of Polygon Vertices (Points/2)')
-    plt.xlabel('Number of Vertices')
-    plt.ylabel('Frequency (Word Annotations)')
-    plt.savefig(os.path.join(output_folder, 'point_distribution.png'))
+    plt.title("Distribution of Polygon Vertices (Points/2)")
+    plt.xlabel("Number of Vertices")
+    plt.ylabel("Frequency (Word Annotations)")
+    plt.savefig(os.path.join(output_folder, "point_distribution.png"))
     plt.close()
-    print(f"Visualization saved to {os.path.join(output_folder, 'point_distribution.png')}")
+    print(
+        f"Visualization saved to {os.path.join(output_folder, 'point_distribution.png')}"
+    )
 
     # 2. Rotation and Skew Analysis
     rotation_angles = []
     skew_ratios = []
 
     for ann in annotations:
-        points = ann['points']
-        bbox = ann['bbox']  # [x, y, w, h]
+        points = ann["points"]
+        bbox = ann["bbox"]  # [x, y, w, h]
 
         # Calculate Rotation Angle (of the top edge: p1 to p2)
         if len(points) >= 4:
@@ -113,7 +119,9 @@ def analyze_all_characteristics(data, output_folder):
             rotation_angles.append(angle)
 
         # Calculate Skew/Non-Rectangularity Ratio (Shoelace Area / Bbox Area)
-        if len(points) >= 8:  # Only makes sense for quadrilaterals or more complex polygons
+        if (
+            len(points) >= 8
+        ):  # Only makes sense for quadrilaterals or more complex polygons
             polygon_area = shoelace_area(points)
             bbox_area = bbox[2] * bbox[3]  # w * h
 
@@ -129,22 +137,30 @@ def analyze_all_characteristics(data, output_folder):
 
     print("\n--- 2. Rotation and Skew Analysis ---")
     print(f"Mean Rotation Angle (Top Edge): {np.mean(rotation_angles):.2f} degrees")
-    print(f"Standard Deviation of Rotation Angle: {np.std(rotation_angles):.2f} degrees")
-    print(f"Mean Non-Rectangularity Ratio (Poly Area / BBox Area): {np.mean(skew_ratios):.4f}")
+    print(
+        f"Standard Deviation of Rotation Angle: {np.std(rotation_angles):.2f} degrees"
+    )
+    print(
+        f"Mean Non-Rectangularity Ratio (Poly Area / BBox Area): {np.mean(skew_ratios):.4f}"
+    )
 
     # Visualization (Rotation Histogram)
     plt.figure(figsize=(8, 5))
     plt.hist(rotation_angles, bins=50, range=[-90, 90])
-    plt.title('Distribution of Text Rotation Angles (Top Edge)')
-    plt.xlabel('Angle (degrees)')
-    plt.ylabel('Frequency (Word Annotations)')
-    plt.savefig(os.path.join(output_folder, 'rotation_distribution.png'))
+    plt.title("Distribution of Text Rotation Angles (Top Edge)")
+    plt.xlabel("Angle (degrees)")
+    plt.ylabel("Frequency (Word Annotations)")
+    plt.savefig(os.path.join(output_folder, "rotation_distribution.png"))
     plt.close()
-    print(f"Visualization saved to {os.path.join(output_folder, 'rotation_distribution.png')}")
+    print(
+        f"Visualization saved to {os.path.join(output_folder, 'rotation_distribution.png')}"
+    )
 
     # 3. Text Variety (Printed vs. Handwritten)
     print("\n--- 3. Text Variety Analysis (Printed vs. Handwritten) ---")
-    print("Note: The standard TextOCR JSON schema typically does NOT include an explicit 'is_handwritten' field.")
+    print(
+        "Note: The standard TextOCR JSON schema typically does NOT include an explicit 'is_handwritten' field."
+    )
     print("If available, it would usually be a separate field in the 'anns' object.")
 
     # Example if the field 'is_handwritten' existed:
@@ -152,27 +168,33 @@ def analyze_all_characteristics(data, output_folder):
     # print(f"Handwritten Annotations: {handwritten_count}")
 
     # 4. Words per Image Distribution
-    words_per_image = Counter(ann['image_id'] for ann in annotations)
+    words_per_image = Counter(ann["image_id"] for ann in annotations)
 
     print("\n--- 4. Words per Image Distribution ---")
     print(f"Total Images: {len(images)}")
-    print(f"Annotations per Image (Mean): {np.mean(list(words_per_image.values())):.2f}")
+    print(
+        f"Annotations per Image (Mean): {np.mean(list(words_per_image.values())):.2f}"
+    )
     print(f"Annotations per Image (Max): {np.max(list(words_per_image.values()))}")
 
     # Visualization (Words per Image Histogram)
     plt.figure(figsize=(8, 5))
     plt.hist(words_per_image.values(), bins=50)
-    plt.title('Distribution of Words (Annotations) Per Image')
-    plt.xlabel('Number of Words')
-    plt.ylabel('Frequency (Images)')
-    plt.yscale('log')  # Use log scale for better visibility of high counts
-    plt.savefig(os.path.join(output_folder, 'words_per_image_distribution.png'))
+    plt.title("Distribution of Words (Annotations) Per Image")
+    plt.xlabel("Number of Words")
+    plt.ylabel("Frequency (Images)")
+    plt.yscale("log")  # Use log scale for better visibility of high counts
+    plt.savefig(os.path.join(output_folder, "words_per_image_distribution.png"))
     plt.close()
-    print(f"Visualization saved to {os.path.join(output_folder, 'words_per_image_distribution.png')}")
+    print(
+        f"Visualization saved to {os.path.join(output_folder, 'words_per_image_distribution.png')}"
+    )
 
     # 5. Image Visualization of Text Location Heatmaps (Conceptual)
     print("\n--- 5. Image Visualization of Text Location Heatmaps ---")
-    print("Generating a heatmap requires merging annotations across all images, which is computationally intensive.")
+    print(
+        "Generating a heatmap requires merging annotations across all images, which is computationally intensive."
+    )
     print("This placeholder logic prepares the data structure for plotting.")
 
     # Data aggregation for heatmap
@@ -180,16 +202,16 @@ def analyze_all_characteristics(data, output_folder):
     all_centers_normalized = []
 
     for ann in annotations:
-        bbox = ann['bbox']  # [x, y, w, h]
-        image_id = ann['image_id']
+        bbox = ann["bbox"]  # [x, y, w, h]
+        image_id = ann["image_id"]
 
         # Get image dimensions to normalize coordinates
         img_meta = images.get(image_id)
         if not img_meta:
             continue
 
-        img_w = img_meta['width']
-        img_h = img_meta['height']
+        img_w = img_meta["width"]
+        img_h = img_meta["height"]
 
         # Calculate center point
         center_x = bbox[0] + bbox[2] / 2
@@ -205,15 +227,19 @@ def analyze_all_characteristics(data, output_folder):
 
     plt.figure(figsize=(8, 8))
     # Create 2D histogram (heatmap)
-    plt.hist2d(centers_x, centers_y, bins=[50, 50], cmap='viridis', range=[[0, 1], [0, 1]])
-    plt.colorbar(label='Frequency of Word Centers')
-    plt.title('Normalized Text Location Heatmap (Word Centers)')
-    plt.xlabel('Normalized X Position (0=Left, 1=Right)')
-    plt.ylabel('Normalized Y Position (0=Top, 1=Bottom)')
+    plt.hist2d(
+        centers_x, centers_y, bins=[50, 50], cmap="viridis", range=[[0, 1], [0, 1]]
+    )
+    plt.colorbar(label="Frequency of Word Centers")
+    plt.title("Normalized Text Location Heatmap (Word Centers)")
+    plt.xlabel("Normalized X Position (0=Left, 1=Right)")
+    plt.ylabel("Normalized Y Position (0=Top, 1=Bottom)")
     plt.gca().invert_yaxis()  # Conventionally, Y=0 is the top of the image
-    plt.savefig(os.path.join(output_folder, 'text_location_heatmap.png'))
+    plt.savefig(os.path.join(output_folder, "text_location_heatmap.png"))
     plt.close()
-    print(f"Visualization saved to {os.path.join(output_folder, 'text_location_heatmap.png')}")
+    print(
+        f"Visualization saved to {os.path.join(output_folder, 'text_location_heatmap.png')}"
+    )
 
 
 def get_characteristics(json_path, output_folder, image_dir=None):
@@ -241,12 +267,12 @@ if __name__ == "__main__":
     # EDA.py is in TextFlow, JSON is in TextFlow/TextOCR
 
     # Assuming EDA.py is run from the 'TextFlow' directory:
-    BASE_DIR = os.path.dirname(os.path.abspath(__file__))  # Should be 'TextFlow'
-    TEXTOCR_JSON_PATH = os.path.join(BASE_DIR, "TextOCR", "TextOCR_0.1_val.json")
-    TEXTOCR_IMAGE_DIR = os.path.join(BASE_DIR, "TextOCR", "train_val_images", "train_images")
-    OUTPUT_FOLDER = os.path.join(BASE_DIR, "EDA_Results")
+    TEXTOCR_JSON_PATH = os.path.join("dataset", "TextOCR", "TextOCR_0.1_val.json")
 
-    print(TEXTOCR_JSON_PATH)
+    TEXTOCR_IMAGE_DIR = os.path.join(
+        "dataset", "TextOCR", "train_val_images", "train_images"
+    )
+    OUTPUT_FOLDER = os.path.join("dataset", "TextOCR", "EDA_Results")
 
     # Ensure the path reflects the uploaded file name
     # We will use the uploaded file's exact name and assume the JSON is local to TextFlow/TextOCR
@@ -264,11 +290,11 @@ if __name__ == "__main__":
 
     # Adjusting to use the uploaded file name directly, assuming the environment can find it.
     # In a real environment, you'd use the explicit path:
-    TEXTOCR_JSON_PATH_LOCAL = "TextOCR_0.1_val.json"
+    TEXTOCR_JSON_PATH_LOCAL = "dataset/TextOCR/TextOCR_0.1_val.json"
 
     # Running with the necessary paths
     get_characteristics(
         json_path=TEXTOCR_JSON_PATH,
         output_folder=OUTPUT_FOLDER,
-        image_dir=TEXTOCR_IMAGE_DIR  # Not used in current EDA but included for consistency
+        image_dir=TEXTOCR_IMAGE_DIR,  # Not used in current EDA but included for consistency
     )

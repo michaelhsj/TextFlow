@@ -11,6 +11,7 @@ __pycache__/
 env/
 venv/
 
+
 # Terraform
 *.tfvars
 .terraform/
@@ -23,3 +24,6 @@ override.tf.json
 *_override.tf.json
 .terraformrc
 terraform.rc
+
+dataset/
+model/
