@@ -12,9 +12,11 @@ Details are available in each directory's `README.md`.
 
 # Setup venv
 ```
-python -m venv venv-textflow
-source venv-texflow/bin/activate
+python3.11 -m venv .venv-textflow
+source .venv-textflow/bin/activate
+pip install --upgrade pip
 pip install -r requirements.txt
+pip install -e .
 ```
  Update `requirements.txt` with only the necessary packages. Bloat is not free because deployed Docker images will be larger: 
  ```
