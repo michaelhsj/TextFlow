@@ -3,6 +3,7 @@ import requests
 import zipfile
 import io
 import shutil
+from tqdm import tqdm
 
 # --- Configuration ---
 
@@ -33,20 +34,17 @@ def download_file(url, local_path):
         response.raise_for_status()
 
         total_size = int(response.headers.get("content-length", 0))
+        chunk_size=8192
         downloaded_size = 0
 
-        with open(local_path, "wb") as f:
-            for chunk in response.iter_content(chunk_size=8192):
-                if chunk:
-                    f.write(chunk)
-                    downloaded_size += len(chunk)
-                    # Simple progress indicator for large files
-                    if total_size > 0 and downloaded_size % (total_size // 100) < 8192:
-                        print(
-                            f"\r   Progress: {downloaded_size / total_size * 100:.2f}%",
-                            end="",
-                        )
-            print("\r   ...Download complete. (100.00%)")
+        with tqdm(total=total_size, unit="B", unit_scale=True) as progress_bar:
+            with open(local_path, "wb") as f:
+                for chunk in response.iter_content(chunk_size=8192):
+                    if chunk:
+                        # Update progress indicator for large files
+                        progress_bar.update(len(chunk))
+                        f.write(chunk)
+
 
     except requests.exceptions.RequestException as e:
         print(f"   [ERROR] Failed to download {os.path.basename(local_path)}: {e}")
