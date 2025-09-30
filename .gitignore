@@ -11,6 +11,9 @@ __pycache__/
 env/
 venv/
 
+# Packaging directories
+.egg-info/
+*.egg-info/
 
 # Terraform
 *.tfvars
