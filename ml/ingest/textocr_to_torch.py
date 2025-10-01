@@ -1,7 +1,7 @@
 import json
 from pathlib import Path
 import attrs
-
+from typing import Any
 import numpy as np
 import torch
 from torch import Tensor
@@ -35,7 +35,7 @@ class TextOCRDoctrDetDataset(Dataset[tuple[Tensor, dict[str, np.ndarray]]]):
         metadata_path = json_path or (DATASET_DIR / "TextOCR_0.1_train.json")
 
         with open(metadata_path) as fh:
-            json_data = tocr_json or json.load(fh)
+            json_data = json.load(fh)
 
         self.samples: list[DoctrDetSample] = []
         max_labels, max_pts = self.get_max_dimensions(json_data)
@@ -58,13 +58,13 @@ class TextOCRDoctrDetDataset(Dataset[tuple[Tensor, dict[str, np.ndarray]]]):
                 xs = np.array(raw_points[0::2], dtype=np.float32)
                 ys = np.array(raw_points[1::2], dtype=np.float32)
 
-                # Clip to image
-                xs = np.clip(xs, 0.0, float(width))
-                ys = np.clip(ys, 0.0, float(height))
+                # Normalize
+                xs /= width
+                ys /= height
 
-                # Scale
-                xs *= TARGET_IMAGE_SIZE[0] / width
-                ys *= TARGET_IMAGE_SIZE[1] / height
+                # Clip to image
+                xs = np.clip(xs, 0.0, float(TARGET_IMAGE_SIZE[0]))
+                ys = np.clip(ys, 0.0, float(TARGET_IMAGE_SIZE[1]))
 
                 # Stack and pad to the max number of polygon points in dataset
                 stacked = np.stack([xs, ys], axis=1)
