@@ -3,6 +3,8 @@ from pathlib import Path
 import attrs
 from typing import Any
 import numpy as np
+from shapely import line_interpolate_point
+from shapely.geometry import LinearRing
 import torch
 from torch import Tensor
 from torch.utils.data import Dataset
@@ -12,6 +14,7 @@ from torchvision.transforms.functional import resize
 
 TARGET_IMAGE_SIZE = (1024, 1024)
 DATASET_DIR = Path("../../dataset/TextOCR")
+RESAMPLED_POLYGON_POINTS = 16
 
 
 @attrs.frozen
@@ -20,6 +23,25 @@ class DoctrDetSample:
     width: int
     height: int
     polygons: np.ndarray
+
+
+def sanitize_polygon(
+    points: np.ndarray,
+    target_points: int = RESAMPLED_POLYGON_POINTS,
+) -> np.ndarray:
+    """Resample polygon vertices using Shapely's contour interpolation."""
+
+    ring = LinearRing(points)
+    perimeter = float(ring.length)
+    distances = np.linspace(0.0, perimeter, num=target_points, endpoint=False, dtype=np.float32)
+
+    samples = np.empty((target_points, 2), dtype=np.float32)
+    for idx, dist in enumerate(distances):
+        interp_pt = line_interpolate_point(ring, float(dist), normalized=False)
+        samples[idx, 0] = float(interp_pt.x)
+        samples[idx, 1] = float(interp_pt.y)
+
+    return samples
 
 
 class TextOCRDoctrDetDataset(Dataset[tuple[Tensor, dict[str, np.ndarray]]]):
@@ -38,7 +60,8 @@ class TextOCRDoctrDetDataset(Dataset[tuple[Tensor, dict[str, np.ndarray]]]):
             json_data = json.load(fh)
 
         self.samples: list[DoctrDetSample] = []
-        max_labels, max_pts = self.get_max_dimensions(json_data)
+        max_labels, _ = self.get_max_dimensions(json_data)
+        max_pts = RESAMPLED_POLYGON_POINTS
 
         for img_id, ann_ids in json_data["imgToAnns"].items():
             if num_samples is not None and len(self.samples) >= num_samples:
@@ -66,11 +89,11 @@ class TextOCRDoctrDetDataset(Dataset[tuple[Tensor, dict[str, np.ndarray]]]):
                 xs = np.clip(xs, 0.0, float(TARGET_IMAGE_SIZE[0]))
                 ys = np.clip(ys, 0.0, float(TARGET_IMAGE_SIZE[1]))
 
-                # Stack and pad to the max number of polygon points in dataset
                 stacked = np.stack([xs, ys], axis=1)
-                polygons[i] = np.pad(
-                    stacked, pad_width=((0, max_pts - len(xs)), (0, 0))
-                )
+                cleaned = sanitize_polygon(stacked, target_points=max_pts)
+                if cleaned is None:
+                    continue
+                polygons[i] = cleaned
 
             sample = DoctrDetSample(
                 image_path=Path(base_images_dir) / img_meta["file_name"],
