@@ -1,0 +1,37 @@
+#!/bin/bash
+set -euo pipefail
+
+DISK_DEV="/dev/disk/by-id/google-${disk_name}"
+MOUNT_POINT="${mount_path}"
+
+# Wait for the persistent disk to become available.
+for _ in $(seq 1 15); do
+  if [[ -b "$DISK_DEV" ]]; then
+    break
+  fi
+  sleep 2
+done
+
+if [[ ! -b "$DISK_DEV" ]]; then
+  echo "Persistent disk $DISK_DEV not found" >&2
+  exit 1
+fi
+
+if ! blkid "$DISK_DEV" >/dev/null 2>&1; then
+  mkfs.ext4 -F "$DISK_DEV"
+fi
+
+UUID=$(blkid -s UUID -o value "$DISK_DEV")
+
+mkdir -p "$MOUNT_POINT"
+
+if ! grep -qs "$UUID" /etc/fstab; then
+  echo "UUID=$UUID $MOUNT_POINT ext4 defaults 0 2" >> /etc/fstab
+fi
+
+if ! mountpoint -q "$MOUNT_POINT"; then
+  mount "$MOUNT_POINT"
+fi
+
+mkdir -p "$MOUNT_POINT/db"
+chmod 755 "$MOUNT_POINT" "$MOUNT_POINT/db"

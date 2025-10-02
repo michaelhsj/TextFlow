@@ -1,0 +1,47 @@
+version: "3.9"
+
+services:
+  gateway:
+    image: ${gateway_image}
+    container_name: textflow-gateway
+    restart: unless-stopped
+    depends_on:
+      - react
+      - mlflow
+    ports:
+      - "${gateway_port}:80"
+    volumes:
+      - /opt/textflow/gateway/default.conf:/etc/nginx/conf.d/default.conf:ro
+
+  react:
+    image: ${react_image}
+    container_name: textflow-react
+    restart: unless-stopped
+    expose:
+      - "${react_port}"
+    environment:
+      PORT: "${react_port}"
+
+  mlflow:
+    image: ${mlflow_image}
+    container_name: textflow-mlflow
+    restart: unless-stopped
+    expose:
+      - "${mlflow_port}"
+    environment:
+      MLFLOW_HOST: "0.0.0.0"
+      MLFLOW_PORT: "${mlflow_port}"
+      MLFLOW_DB_PATH: "/app/db/mlflow.db"
+      MLFLOW_BACKEND_STORE_URI: "sqlite:////app/db/mlflow.db"
+      MLFLOW_ARTIFACT_ROOT: "/app/artifacts"
+      MLFLOW_ARTIFACTS_DESTINATION: "gs://${mlflow_bucket}"
+      MLFLOW_DEFAULT_ARTIFACT_ROOT: "gs://${mlflow_bucket}"
+    volumes:
+      - ${mlflow_db_host_path}:/app/db
+      - ${mlflow_artifacts_host_path}:/app/artifacts
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://localhost:${mlflow_port}/api/2.0/mlflow/registered-models/list || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
