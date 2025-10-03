@@ -27,7 +27,7 @@ variable "mlflow_port" {
   default     = 5000
 }
 
-variable "mlflow_state_disk_size_gb" {
+variable "perma_disk_size_gb" {
   description = "Size (GB) of the persistent disk that stores MLflow state."
   type        = number
   default     = 20

@@ -12,6 +12,7 @@ services:
       - "${gateway_port}:80"
     volumes:
       - /opt/textflow/gateway/default.conf:/etc/nginx/conf.d/default.conf:ro
+      - ${perma_htpasswd_host_path}:/etc/nginx/conf.d/.htpasswd:ro
 
   react:
     image: ${react_image}
@@ -37,8 +38,8 @@ services:
       MLFLOW_ARTIFACTS_DESTINATION: "gs://${mlflow_bucket}"
       MLFLOW_DEFAULT_ARTIFACT_ROOT: "gs://${mlflow_bucket}"
     volumes:
-      - ${mlflow_db_host_path}:/app/db
-      - ${mlflow_artifacts_host_path}:/app/artifacts
+      - ${perma_db_host_path}:/app/db
+      - ${perma_artifacts_host_path}:/app/artifacts
     healthcheck:
       test: ["CMD-SHELL", "curl -fsS http://localhost:${mlflow_port}/api/2.0/mlflow/registered-models/list || exit 1"]
       interval: 30s

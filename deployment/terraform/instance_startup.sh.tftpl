@@ -5,12 +5,14 @@ exec > >(tee /var/log/startup-instance.log) 2>&1
 
 DISK_DEV="/dev/disk/by-id/google-${disk_name}"
 MOUNT_POINT="${mount_path}"
-DB_PATH="${mlflow_db_host_path}"
-ARTIFACTS_PATH="${mlflow_artifacts_host_path}"
+DB_PATH="${perma_db_host_path}"
+ARTIFACTS_PATH="${perma_artifacts_host_path}"
 COMPOSE_ROOT="/opt/textflow"
 GATEWAY_DIR="$COMPOSE_ROOT/gateway"
 COMPOSE_FILE="$COMPOSE_ROOT/docker-compose.yml"
 NGINX_CONF="$GATEWAY_DIR/default.conf"
+HTPASSWD_FILE="${perma_htpasswd_host_path}"
+AUTH_DIR="$(dirname "$HTPASSWD_FILE")"
 
 export DEBIAN_FRONTEND=noninteractive
 
@@ -24,7 +26,8 @@ apt-get install -y \
   python3 \
   python3-pip \
   docker.io \
-  docker-compose
+  docker-compose \
+  apache2-utils
 
 systemctl enable docker
 systemctl start docker
@@ -60,44 +63,17 @@ fi
 mkdir -p "$DB_PATH" "$ARTIFACTS_PATH"
 chmod 755 "$MOUNT_POINT" "$DB_PATH" "$ARTIFACTS_PATH"
 
-mkdir -p "$COMPOSE_ROOT" "$GATEWAY_DIR"
+mkdir -p "$COMPOSE_ROOT" "$GATEWAY_DIR" "$AUTH_DIR"
+touch "$HTPASSWD_FILE"
+chmod 644 "$HTPASSWD_FILE"
+echo "Nginx basic auth enabled for /mlflow; add users with 'sudo htpasswd $HTPASSWD_FILE <user>'" >> /var/log/startup-instance.log
 
 cat <<'COMPOSE' > "$COMPOSE_FILE"
 ${docker_compose}
 COMPOSE
 
 cat <<'NGINX' > "$NGINX_CONF"
-upstream textflow_ui {
-  server react:${react_port};
-}
-
-upstream textflow_mlflow {
-  server mlflow:${mlflow_port};
-}
-
-server {
-  listen 80;
-  server_name _;
-
-  location / {
-    proxy_pass http://textflow_ui;
-    proxy_http_version 1.1;
-    proxy_set_header Upgrade $http_upgrade;
-    proxy_set_header Connection "upgrade";
-    proxy_set_header Host $host;
-    proxy_set_header X-Real-IP $remote_addr;
-    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-    proxy_set_header X-Forwarded-Proto $scheme;
-  }
-
-  location /mlflow/ {
-    rewrite ^/mlflow/(.*)$ /$1 break;
-    proxy_pass http://textflow_mlflow;
-    proxy_set_header Host $host;
-    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-    proxy_set_header X-Forwarded-Proto $scheme;
-  }
-}
+${nginx_conf}
 NGINX
 
 if [[ -n "${artifact_registry_host}" ]]; then

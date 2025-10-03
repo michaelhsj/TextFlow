@@ -23,15 +23,20 @@ data "google_compute_image" "ubuntu_2204_lts" {
   project = "ubuntu-os-cloud"
 }
 
-# Derive the dev image reference the VM should pull from Artifact Registry
 locals {
-  react_image                = "${var.region}-docker.pkg.dev/${var.project_id}/${google_artifact_registry_repository.textflow-react.repository_id}/dev:latest"
-  mlflow_image               = "${var.region}-docker.pkg.dev/${var.project_id}/${google_artifact_registry_repository.textflow_mlflow.repository_id}/server:latest"
-  gateway_image              = "nginx:1.25-alpine"
-  mlflow_disk_mount_path     = "/mnt/disks/mlflow-state"
-  mlflow_db_host_path        = "${local.mlflow_disk_mount_path}/db"
-  mlflow_artifacts_host_path = "${local.mlflow_disk_mount_path}/artifacts"
-  artifact_registry_host     = "${var.region}-docker.pkg.dev"
+  # Docker Images
+  react_image   = "${var.region}-docker.pkg.dev/${var.project_id}/${google_artifact_registry_repository.textflow-react.repository_id}/dev:latest"
+  mlflow_image  = "${var.region}-docker.pkg.dev/${var.project_id}/${google_artifact_registry_repository.textflow_mlflow.repository_id}/server:latest"
+  gateway_image = "nginx:1.25-alpine"
+
+  # Storage
+  perma_disk_mount_path     = "/mnt/disks/perma-disk"
+  perma_db_host_path        = "${local.perma_disk_mount_path}/db"
+  perma_artifacts_host_path = "${local.perma_disk_mount_path}/artifacts"
+  perma_htpasswd_host_path  = "${local.perma_disk_mount_path}/nginx/.htpasswd"
+  artifact_registry_host    = "${var.region}-docker.pkg.dev"
+
+  # Use templatefile to avoid defining docker compose in this file.
   docker_compose_yaml = templatefile("${path.module}/docker-compose.yml.tftpl", {
     gateway_image              = local.gateway_image
     gateway_port               = var.gateway_port
@@ -40,20 +45,26 @@ locals {
     mlflow_image               = local.mlflow_image
     mlflow_port                = var.mlflow_port
     mlflow_bucket              = google_storage_bucket.mlflow_artifacts.name
-    mlflow_db_host_path        = local.mlflow_db_host_path
-    mlflow_artifacts_host_path = local.mlflow_artifacts_host_path
+    perma_db_host_path         = local.perma_db_host_path
+    perma_artifacts_host_path  = local.perma_artifacts_host_path
+    perma_htpasswd_host_path   = local.perma_htpasswd_host_path
+  })
+
+  nginx_default_conf = templatefile("${path.module}/nginx-default.conf.tftpl", {
+    react_port = var.react_port
+    mlflow_port = var.mlflow_port
   })
 }
 
 # Persistent disk used to store MLflow's state database so it survives instance rebuilds
-resource "google_compute_disk" "mlflow_state" {
-  name = "textflow-mlflow-state"
+resource "google_compute_disk" "perma_disk" {
+  name = "textflow-perma-disk"
   type = "pd-balanced"
   zone = var.zone
-  size = var.mlflow_state_disk_size_gb
+  size = var.perma_disk_size_gb
 }
 
-# Runs the React container on a Container-Optimized VM and exposes the desired port
+# Runs containers in Elastic Compute and exposes the desired port
 resource "google_compute_instance" "default" {
   name                      = "textflow-instance"
   machine_type              = "e2-standard-2"
@@ -68,8 +79,8 @@ resource "google_compute_instance" "default" {
   }
 
   attached_disk {
-    source      = google_compute_disk.mlflow_state.id
-    device_name = google_compute_disk.mlflow_state.name
+    source      = google_compute_disk.perma_disk.id
+    device_name = google_compute_disk.perma_disk.name
     mode        = "READ_WRITE"
   }
 
@@ -89,21 +100,21 @@ resource "google_compute_instance" "default" {
   }
 
   metadata_startup_script = templatefile("${path.module}/instance_startup.sh.tftpl", {
-    disk_name                  = google_compute_disk.mlflow_state.name
-    mount_path                 = local.mlflow_disk_mount_path
+    disk_name                  = google_compute_disk.perma_disk.name
+    mount_path                 = local.perma_disk_mount_path
     docker_compose             = local.docker_compose_yaml
     artifact_registry_host     = local.artifact_registry_host
-    mlflow_db_host_path        = local.mlflow_db_host_path
-    mlflow_artifacts_host_path = local.mlflow_artifacts_host_path
-    react_port                 = var.react_port
-    mlflow_port                = var.mlflow_port
+    perma_db_host_path         = local.perma_db_host_path
+    perma_artifacts_host_path  = local.perma_artifacts_host_path
+    perma_htpasswd_host_path   = local.perma_htpasswd_host_path
+    nginx_conf                 = local.nginx_default_conf
   })
 
   depends_on = [
     google_artifact_registry_repository.textflow-react,
     google_artifact_registry_repository.textflow_mlflow,
     google_storage_bucket.mlflow_artifacts,
-    google_compute_disk.mlflow_state,
+    google_compute_disk.perma_disk,
   ]
 }
 
@@ -125,6 +136,7 @@ resource "google_storage_bucket" "mlflow_artifacts" {
   }
 }
 
+# Grant the instance service account access to read/write MLflow artifacts
 resource "google_storage_bucket_iam_member" "mlflow_artifacts_instance_rw" {
   bucket = google_storage_bucket.mlflow_artifacts.name
   role   = "roles/storage.objectAdmin"
