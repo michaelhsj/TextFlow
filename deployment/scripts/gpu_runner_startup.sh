@@ -1,10 +1,13 @@
 #!/bin/bash
 set -euxo pipefail
 
+# Capture logs from the GPU runner provisioning for troubleshooting.
 exec > >(tee /var/log/startup-gpu-runner.log) 2>&1
 
+# Suppress interactive prompts during package installation.
 export DEBIAN_FRONTEND=noninteractive
 
+# Install Docker, Python, and system utilities required to execute GPU jobs.
 apt-get update
 apt-get install -y \
   apt-transport-https \
@@ -18,14 +21,17 @@ apt-get install -y \
   docker.io \
   docker-compose
 
+# Enable and start the Docker daemon so containers can run immediately.
 systemctl enable docker
 systemctl start docker
 
+# Install NVIDIA GPU drivers if they are not already present.
 if ! command -v nvidia-smi >/dev/null 2>&1; then
   curl -s -o /tmp/install_gpu_driver.py https://raw.githubusercontent.com/GoogleCloudPlatform/compute-gpu-installation/stable/linux/install_gpu_driver.py
   python3 /tmp/install_gpu_driver.py
 fi
 
+# Install the NVIDIA container toolkit when missing to allow Docker GPU passthrough.
 if ! command -v nvidia-ctk >/dev/null 2>&1; then
   distribution=$(. /etc/os-release; echo $ID$VERSION_ID)
   curl -fsSL https://nvidia.github.io/libnvidia-container/gpgkey | gpg --dearmor -o /usr/share/keyrings/nvidia-container-toolkit-keyring.gpg
@@ -38,6 +44,7 @@ if ! command -v nvidia-ctk >/dev/null 2>&1; then
   systemctl restart docker
 fi
 
+# Create a helper script to run GPU-enabled container jobs with optional auth.
 cat <<'SCRIPT' >/usr/local/bin/run_gpu_container_job.sh
 #!/usr/bin/env bash
 set -euo pipefail
