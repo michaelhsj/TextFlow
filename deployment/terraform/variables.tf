@@ -9,10 +9,16 @@ variable "region" {
   default     = "northamerica-northeast1"
 }
 
-variable "zone" {
-  description = "The zone to deploy to."
+variable "service_zone" {
+  description = "Zone for the primary TextFlow service instance and its disk."
   type        = string
   default     = "northamerica-northeast1-c"
+}
+
+variable "gpu_zone" {
+  description = "Zone for the optional GPU job runner instance."
+  type        = string
+  default     = "us-central1-a"
 }
 
 variable "react_port" {
@@ -54,7 +60,7 @@ variable "gpu_job_machine_type" {
 variable "gpu_type" {
   description = "GPU accelerator type to attach to the job runner instance."
   type        = string
-  default     = "nvidia-tesla-t4"
+  default     = "nvidia-tesla-p4"
 }
 
 variable "gpu_count" {

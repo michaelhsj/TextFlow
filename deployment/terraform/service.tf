@@ -10,7 +10,7 @@ terraform {
 provider "google" {
   project = var.project_id
   region  = var.region
-  zone    = var.zone
+  zone    = var.service_zone
 }
 
 terraform {
@@ -60,7 +60,7 @@ locals {
 resource "google_compute_disk" "perma_disk" {
   name = "textflow-perma-disk"
   type = "pd-balanced"
-  zone = var.zone
+  zone = var.service_zone
   size = var.perma_disk_size_gb
 }
 
@@ -69,6 +69,7 @@ resource "google_compute_instance" "default" {
   name                      = "textflow-instance"
   machine_type              = "e2-standard-2"
   allow_stopping_for_update = true
+  zone                      = var.service_zone
 
   tags = ["textflow-react"]
 

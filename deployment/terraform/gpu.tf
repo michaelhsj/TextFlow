@@ -53,6 +53,7 @@ resource "google_compute_instance" "gpu_job_runner" {
   name                      = "textflow-gpu-runner"
   machine_type              = var.gpu_job_machine_type
   allow_stopping_for_update = true
+  zone                      = var.gpu_zone
 
   tags = var.gpu_runner_tags
 
