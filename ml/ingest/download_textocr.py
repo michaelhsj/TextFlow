@@ -4,6 +4,7 @@ import zipfile
 import io
 import shutil
 from tqdm import tqdm
+from pathlib import Path
 
 # --- Configuration ---
 
@@ -86,7 +87,7 @@ def setup_and_download_textocr():
     # The official zip extracts into a folder structure that includes a 'train' directory.
     # We target the parent directory of the final images folder for extraction.
     target_image_folder = os.path.join(
-        IMAGE_EXTRACT_DIR, "train_images"
+        IMAGE_EXTRACT_DIR, "train"
     )  # Assuming the zip extracts a 'train' folder
     if (
         os.path.isdir(target_image_folder)
