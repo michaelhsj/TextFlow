@@ -37,21 +37,21 @@ locals {
   artifact_registry_host    = "${var.region}-docker.pkg.dev"
 
   # Use templatefile to avoid defining docker compose in this file.
-  docker_compose_yaml = templatefile("${path.module}/docker-compose.yml.tftpl", {
-    gateway_image              = local.gateway_image
-    gateway_port               = var.gateway_port
-    react_image                = local.react_image
-    react_port                 = var.react_port
-    mlflow_image               = local.mlflow_image
-    mlflow_port                = var.mlflow_port
-    mlflow_bucket              = google_storage_bucket.mlflow_artifacts.name
-    perma_db_host_path         = local.perma_db_host_path
-    perma_artifacts_host_path  = local.perma_artifacts_host_path
-    perma_htpasswd_host_path   = local.perma_htpasswd_host_path
+  docker_compose_yaml = templatefile("${path.module}/docker-compose.yml", {
+    gateway_image             = local.gateway_image
+    gateway_port              = var.gateway_port
+    react_image               = local.react_image
+    react_port                = var.react_port
+    mlflow_image              = local.mlflow_image
+    mlflow_port               = var.mlflow_port
+    mlflow_bucket             = google_storage_bucket.mlflow_artifacts.name
+    perma_db_host_path        = local.perma_db_host_path
+    perma_artifacts_host_path = local.perma_artifacts_host_path
+    perma_htpasswd_host_path  = local.perma_htpasswd_host_path
   })
 
-  nginx_default_conf = templatefile("${path.module}/nginx-default.conf.tftpl", {
-    react_port = var.react_port
+  nginx_default_conf = templatefile("${path.module}/nginx.conf", {
+    react_port  = var.react_port
     mlflow_port = var.mlflow_port
   })
 }
@@ -100,14 +100,14 @@ resource "google_compute_instance" "default" {
   }
 
   metadata_startup_script = templatefile("${path.module}/instance_startup.sh.tftpl", {
-    disk_name                  = google_compute_disk.perma_disk.name
-    mount_path                 = local.perma_disk_mount_path
-    docker_compose             = local.docker_compose_yaml
-    artifact_registry_host     = local.artifact_registry_host
-    perma_db_host_path         = local.perma_db_host_path
-    perma_artifacts_host_path  = local.perma_artifacts_host_path
-    perma_htpasswd_host_path   = local.perma_htpasswd_host_path
-    nginx_conf                 = local.nginx_default_conf
+    disk_name                 = google_compute_disk.perma_disk.name
+    mount_path                = local.perma_disk_mount_path
+    docker_compose            = local.docker_compose_yaml
+    artifact_registry_host    = local.artifact_registry_host
+    perma_db_host_path        = local.perma_db_host_path
+    perma_artifacts_host_path = local.perma_artifacts_host_path
+    perma_htpasswd_host_path  = local.perma_htpasswd_host_path
+    nginx_conf                = local.nginx_default_conf
   })
 
   depends_on = [
