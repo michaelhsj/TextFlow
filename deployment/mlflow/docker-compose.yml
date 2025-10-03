@@ -1,0 +1,23 @@
+services:
+  mlflow:
+    container_name: textflow-mlflow
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "${MLFLOW_HOST_PORT:-65500}:5000"
+    environment:
+      MLFLOW_PORT: "${MLFLOW_PORT:-5000}"
+      MLFLOW_DB_PATH: /app/db/mlflow.db
+      MLFLOW_ARTIFACT_ROOT: /app/artifacts
+      MLFLOW_ARTIFACTS_DESTINATION: "${MLFLOW_ARTIFACTS_DESTINATION:-gs://double-goal-473318-a4-mlflow-artifacts}"
+    volumes:
+      - ./local_data/db:/app/db
+      - ./local_data/artifacts:/app/artifacts
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:${MLFLOW_PORT:-5000}/api/2.0/mlflow/registered-models/list || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 30s

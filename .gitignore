@@ -30,3 +30,4 @@ terraform.rc
 
 dataset/
 model/
+deployment/mlflow/local_data/
