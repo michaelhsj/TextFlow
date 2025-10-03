@@ -83,5 +83,5 @@ resource "google_compute_instance" "gpu_job_runner" {
     scopes = ["https://www.googleapis.com/auth/cloud-platform"]
   }
 
-  metadata_startup_script = file("${path.module}/gpu_runner_startup.sh")
+  metadata_startup_script = file("${path.module}/../scripts/gpu_runner_startup.sh")
 }

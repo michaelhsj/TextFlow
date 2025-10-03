@@ -50,7 +50,7 @@ locals {
     perma_htpasswd_host_path  = local.perma_htpasswd_host_path
   })
 
-  nginx_default_conf = templatefile("${path.module}/nginx.conf", {
+  nginx_default_conf = templatefile("${path.module}/../nginx/nginx.conf", {
     react_port  = var.react_port
     mlflow_port = var.mlflow_port
   })
@@ -99,7 +99,7 @@ resource "google_compute_instance" "default" {
     "google-monitoring-enabled" = "true"
   }
 
-  metadata_startup_script = templatefile("${path.module}/instance_startup.sh.tftpl", {
+  metadata_startup_script = templatefile("${path.module}/../scripts/service_startup.sh", {
     disk_name                 = google_compute_disk.perma_disk.name
     mount_path                = local.perma_disk_mount_path
     docker_compose            = local.docker_compose_yaml
