@@ -4,6 +4,10 @@ terraform {
       source  = "hashicorp/google"
       version = "4.51.0"
     }
+    cloudflare = {
+      source  = "cloudflare/cloudflare"
+      version = "~> 4.0"
+    }
   }
 }
 
@@ -13,12 +17,24 @@ provider "google" {
   zone    = var.service_zone
 }
 
+resource "null_resource" "cloudflare_token_guard" {
+  count = trimspace(getenv("CLOUDFLARE_API_TOKEN")) == "" ? 1 : 0
+
+  provisioner "local-exec" {
+    command = "echo 'CLOUDFLARE_API_TOKEN must be set in the environment before running Terraform.' >&2 && exit 1"
+  }
+}
+
+provider "cloudflare" {
+  api_token = trimspace(getenv("CLOUDFLARE_API_TOKEN"))
+}
+
 terraform {
   backend "gcs" {}
 }
 
 # Resolve the latest Ubuntu 22.04 LTS image for the main instance
-data "google_compute_image" "ubuntu_docker_ce" {
+data "google_compute_image" "ubuntu" {
   family  = "ubuntu-2204-lts"
   project = "ubuntu-os-cloud"
 }
@@ -54,6 +70,14 @@ locals {
     react_port  = var.react_port
     mlflow_port = var.mlflow_port
   })
+
+  gateway_hostname       = "textflow"
+  cloudflare_zone_domain = "textflowocr.com"
+  gateway_domain_fqdn    = "${local.gateway_hostname}.${local.cloudflare_zone_domain}."
+}
+
+data "cloudflare_zone" "gateway" {
+  name = local.cloudflare_zone_domain
 }
 
 # Persistent disk used to store MLflow's state database so it survives instance rebuilds
@@ -62,6 +86,41 @@ resource "google_compute_disk" "perma_disk" {
   type = "pd-balanced"
   zone = var.service_zone
   size = var.perma_disk_size_gb
+}
+
+# Static external IP to give the gateway a stable address
+resource "google_compute_address" "gateway_static" {
+  name   = "textflow-gateway-ip"
+  region = var.region
+}
+
+resource "cloudflare_record" "gateway_a" {
+  zone_id = data.cloudflare_zone.gateway.id
+  name    = local.gateway_hostname
+  type    = "A"
+  content = google_compute_address.gateway_static.address
+  ttl     = 1
+  proxied = true
+  allow_overwrite = true
+}
+
+resource "cloudflare_record" "gateway_apex" {
+  zone_id = data.cloudflare_zone.gateway.id
+  name    = "@"
+  type    = "A"
+  content = google_compute_address.gateway_static.address
+  ttl     = 1
+  proxied = true
+  allow_overwrite = true
+}
+
+resource "cloudflare_record" "gateway_www" {
+  zone_id = data.cloudflare_zone.gateway.id
+  name    = "www"
+  type    = "CNAME"
+  content = local.gateway_domain_fqdn
+  proxied = true
+  allow_overwrite = true
 }
 
 # Runs containers in Elastic Compute and exposes the desired port
@@ -75,7 +134,7 @@ resource "google_compute_instance" "default" {
 
   boot_disk {
     initialize_params {
-      image = data.google_compute_image.ubuntu_docker_ce.self_link
+      image = data.google_compute_image.ubuntu.self_link
     }
   }
 
@@ -87,7 +146,9 @@ resource "google_compute_instance" "default" {
 
   network_interface {
     network = "default"
-    access_config {}
+    access_config {
+      nat_ip = google_compute_address.gateway_static.address
+    }
   }
 
   service_account {

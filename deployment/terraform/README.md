@@ -31,9 +31,14 @@
    terraform apply
    ```
 
-4. The IP address of the instance will be output after the apply is complete. To see it without applying, run:
+4. The gateway now uses a reserved static IP so the address remains consistent across rebuilds. The address is printed after `terraform apply`. To see it without applying, run:
    ```
    terraform show
+   ```
+
+5. DNS for `textflowocr.com` is hosted on Cloudflare. Export a token with DNS Edit permissions so Terraform can keep the `textflow`, `@`, and `www` records in sync with the static IP:
+   ```
+   export CLOUDFLARE_API_TOKEN="<cloudflare-token-with-dns-edit>"
    ```
 
 ## GPU job runner (configurable)
