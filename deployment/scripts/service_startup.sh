@@ -19,7 +19,7 @@ AUTH_DIR="$(dirname "$HTPASSWD_FILE")"
 # Prevent Debian tools from prompting during package installs.
 export DEBIAN_FRONTEND=noninteractive
 
-# Install Docker, Python, and utilities required for the stack.
+# Install base tooling required before adding the Docker repository.
 apt-get update
 apt-get install -y \
   apt-transport-https \
@@ -29,9 +29,23 @@ apt-get install -y \
   lsb-release \
   python3 \
   python3-pip \
-  docker.io \
-  docker-compose \
   apache2-utils
+
+# Configure Docker's official repository for the LTS image.
+install -m 0755 -d /etc/apt/keyrings
+curl -fsSL https://download.docker.com/linux/ubuntu/gpg | gpg --no-tty --dearmor -o /etc/apt/keyrings/docker.gpg
+chmod a+r /etc/apt/keyrings/docker.gpg
+echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable" \
+  > /etc/apt/sources.list.d/docker.list
+
+# Install Docker Engine along with Buildx and Compose v2.
+apt-get update
+apt-get install -y \
+  docker-ce \
+  docker-ce-cli \
+  containerd.io \
+  docker-buildx-plugin \
+  docker-compose-plugin
 
 # Ensure Docker is enabled at boot and running now.
 systemctl enable docker
@@ -76,13 +90,13 @@ fi
 mkdir -p "$DB_PATH" "$ARTIFACTS_PATH"
 chmod 755 "$MOUNT_POINT" "$DB_PATH" "$ARTIFACTS_PATH"
 
-# Lay out directories for docker-compose, gateway, and auth material.
+# Lay out directories for docker compose, gateway, and auth material.
 mkdir -p "$COMPOSE_ROOT" "$GATEWAY_DIR" "$AUTH_DIR"
 touch "$HTPASSWD_FILE"
 chmod 644 "$HTPASSWD_FILE"
 echo "Nginx basic auth enabled for /mlflow; add users with 'sudo htpasswd $HTPASSWD_FILE <user>'" >> /var/log/startup-instance.log
 
-# Write docker-compose definition supplied from instance metadata.
+# Write docker compose definition supplied from instance metadata.
 cat <<'COMPOSE' > "$COMPOSE_FILE"
 ${docker_compose}
 COMPOSE
@@ -101,7 +115,7 @@ if [[ -n "${artifact_registry_host}" ]]; then
 fi
 
 # Pull required container images prior to starting services.
-docker-compose -f "$COMPOSE_FILE" pull
+docker compose -f "$COMPOSE_FILE" pull
 
-# Launch the docker-compose stack in detached mode, cleaning old containers.
-docker-compose -f "$COMPOSE_FILE" up -d --remove-orphans
+# Launch the docker compose stack in detached mode, cleaning old containers.
+docker compose -f "$COMPOSE_FILE" up -d --remove-orphans

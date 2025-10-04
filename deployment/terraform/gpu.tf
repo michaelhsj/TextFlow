@@ -59,7 +59,7 @@ resource "google_compute_instance" "gpu_job_runner" {
 
   boot_disk {
     initialize_params {
-      image = data.google_compute_image.ubuntu_2204_lts.self_link
+      image = data.google_compute_image.ubuntu_docker_ce.self_link
       size  = var.gpu_boot_disk_size_gb
     }
   }

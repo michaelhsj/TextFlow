@@ -17,8 +17,8 @@ terraform {
   backend "gcs" {}
 }
 
-# Resolve the latest Ubuntu LTS image for the main instance
-data "google_compute_image" "ubuntu_2204_lts" {
+# Resolve the latest Ubuntu 22.04 LTS image for the main instance
+data "google_compute_image" "ubuntu_docker_ce" {
   family  = "ubuntu-2204-lts"
   project = "ubuntu-os-cloud"
 }
@@ -75,7 +75,7 @@ resource "google_compute_instance" "default" {
 
   boot_disk {
     initialize_params {
-      image = data.google_compute_image.ubuntu_2204_lts.self_link
+      image = data.google_compute_image.ubuntu_docker_ce.self_link
     }
   }
 
