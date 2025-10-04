@@ -38,7 +38,7 @@
 
 5. DNS for `textflowocr.com` is hosted on Cloudflare. Export a token with DNS Edit permissions so Terraform can keep the `textflow`, `@`, and `www` records in sync with the static IP:
    ```
-   export CLOUDFLARE_API_TOKEN="<cloudflare-token-with-dns-edit>"
+   export TF_VAR_cloudflare_api_token="<cloudflare-token-with-dns-edit>"
    ```
 
 ## GPU job runner (configurable)

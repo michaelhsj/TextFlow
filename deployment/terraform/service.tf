@@ -18,15 +18,15 @@ provider "google" {
 }
 
 resource "null_resource" "cloudflare_token_guard" {
-  count = trimspace(getenv("CLOUDFLARE_API_TOKEN")) == "" ? 1 : 0
+  count = trimspace(var.cloudflare_api_token) == "" ? 1 : 0
 
   provisioner "local-exec" {
-    command = "echo 'CLOUDFLARE_API_TOKEN must be set in the environment before running Terraform.' >&2 && exit 1"
+    command = "echo 'Set TF_VAR_cloudflare_api_token (or pass -var cloudflare_api_token=...) before running Terraform.' >&2 && exit 1"
   }
 }
 
 provider "cloudflare" {
-  api_token = trimspace(getenv("CLOUDFLARE_API_TOKEN"))
+  api_token = trimspace(var.cloudflare_api_token)
 }
 
 terraform {

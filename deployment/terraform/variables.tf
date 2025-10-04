@@ -80,3 +80,14 @@ variable "gpu_runner_tags" {
   type        = list(string)
   default     = ["textflow-gpu-runner"]
 }
+
+variable "cloudflare_api_token" {
+  description = "API token used for authenticating with Cloudflare."
+  type        = string
+  sensitive   = true
+
+  validation {
+    condition     = trimspace(var.cloudflare_api_token) != ""
+    error_message = "Set TF_VAR_cloudflare_api_token (or pass -var cloudflare_api_token=...) before running Terraform."
+  }
+}
