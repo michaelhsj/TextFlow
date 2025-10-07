@@ -15,10 +15,6 @@ Details are available in each directory's `README.md`.
 python3.11 -m venv .venv-textflow
 source .venv-textflow/bin/activate
 pip install --upgrade pip
-pip install -r requirements.txt
 pip install -e .
 ```
- Update `requirements.txt` with only the necessary packages. Bloat is not free because deployed Docker images will be larger: 
- ```
- pip freeze > requirements.txt
- ```
+Dependencies are tracked in `pyproject.toml`. Keep the list lean to avoid bloated Docker images.
