@@ -33,10 +33,16 @@ val_dataset = TextOCRDoctrDetDataset(
     num_samples=VAL_NUM_SAMPLES,
 )
 train_loader = DataLoader(
-    train_dataset, batch_size=TRAIN_BATCH_SIZE, shuffle=True, collate_fn=doctr_detection_collate
+    train_dataset,
+    batch_size=TRAIN_BATCH_SIZE,
+    shuffle=True,
+    collate_fn=doctr_detection_collate,
 )
 val_loader = DataLoader(
-    val_dataset, batch_size=VAL_BATCH_SIZE, shuffle=False, collate_fn=doctr_detection_collate
+    val_dataset,
+    batch_size=VAL_BATCH_SIZE,
+    shuffle=False,
+    collate_fn=doctr_detection_collate,
 )
 
 # --- MLFlow ---
@@ -59,38 +65,42 @@ MODEL_DIR.mkdir(parents=True, exist_ok=True)
 
 optimizer = torch.optim.Adam([p for p in model.parameters() if p.requires_grad], LR)
 
-run_name = os.getenv('MLFLOW_RUN_NAME', 'doctr-dbnet-lite')
+run_name = os.getenv("MLFLOW_RUN_NAME", "doctr-dbnet-lite")
 
 best_val_loss = float("inf")
 global_step = 0
 
 with mlflow.start_run(run_name=run_name) as run:
-    mlflow.log_params({
-        'learning_rate': LR,
-        'batch_size': TRAIN_BATCH_SIZE,
-        'train_samples': len(train_dataset),
-        'epochs': NUM_EPOCHS,
-    })
-    mlflow.set_tag('model_architecture', 'db_resnet50')
-    mlflow.set_tag('dataset', f'textocr_subset_{TRAIN_NUM_SAMPLES}')
-    
-    model_path_best = MODEL_DIR / 'dbnet_textocr_best.pt'
+    mlflow.log_params(
+        {
+            "learning_rate": LR,
+            "batch_size": TRAIN_BATCH_SIZE,
+            "train_samples": len(train_dataset),
+            "epochs": NUM_EPOCHS,
+        }
+    )
+    mlflow.set_tag("model_architecture", "db_resnet50")
+    mlflow.set_tag("dataset", f"textocr_subset_{TRAIN_NUM_SAMPLES}")
+
+    model_path_best = MODEL_DIR / "dbnet_textocr_best.pt"
     for epoch in range(NUM_EPOCHS):
         model.train()
         for step, (images, targets) in enumerate(train_loader, start=1):
             images = images.to(device)
 
             optimizer.zero_grad(set_to_none=True)
-            train_loss = model(images, targets)['loss']
+            train_loss = model(images, targets)["loss"]
             train_loss.backward()
             torch.nn.utils.clip_grad_norm_(model.parameters(), 5)
             optimizer.step()
 
             # print(batch, train_loss.item())
             if step % 5 == 0:
-                mlflow.log_metric('train_loss', train_loss.item(), step=step)
-                print(f"[Epoch {epoch+1}, Batch {step}] Train Loss: {train_loss.item():.4f}")
-        
+                mlflow.log_metric("train_loss", train_loss.item(), step=step)
+                print(
+                    f"[Epoch {epoch+1}, Batch {step}] Train Loss: {train_loss.item():.4f}"
+                )
+
             # --- run validation periodically ---
             if global_step % VAL_INTERVAL == 0 and global_step > 0:
                 model.eval()
@@ -102,8 +112,10 @@ with mlflow.start_run(run_name=run_name) as run:
                         running_val_loss += val_loss.item()
 
                 avg_val_loss = running_val_loss / len(val_loader)
-                mlflow.log_metric('val_loss', avg_val_loss, step=global_step)
-                print(f"[Epoch {epoch+1}, Step {global_step}] Val Loss: {avg_val_loss:.4f}")
+                mlflow.log_metric("val_loss", avg_val_loss, step=global_step)
+                print(
+                    f"[Epoch {epoch+1}, Step {global_step}] Val Loss: {avg_val_loss:.4f}"
+                )
 
                 # Save best model
                 if avg_val_loss < best_val_loss:
@@ -115,11 +127,9 @@ with mlflow.start_run(run_name=run_name) as run:
 
             global_step += 1
 
-    model_path_latest = MODEL_DIR / 'dbnet_textocr_latest.pt'
+    model_path_latest = MODEL_DIR / "dbnet_textocr_latest.pt"
     torch.save(model.state_dict(), model_path_latest)
     mlflow.log_artifact(str(model_path_latest))
-    mlflow.pytorch.log_model(model, name='dbnet_textocr_model')
+    mlflow.pytorch.log_model(model, name="dbnet_textocr_model")
 
-print('MLflow run logged:', run.info.run_id)
-
-
+print("MLflow run logged:", run.info.run_id)
