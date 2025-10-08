@@ -5,7 +5,7 @@
 # Byte-compiled python files
 *.pyc
 __pycache__/
-
+build/
 # Virtual environments
 .venv/
 env/
@@ -31,3 +31,6 @@ terraform.rc
 dataset/
 model/
 deployment/mlflow/local_data/
+
+# Dagstertmp*
+tmp*
