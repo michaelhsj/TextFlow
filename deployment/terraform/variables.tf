@@ -33,6 +33,12 @@ variable "mlflow_port" {
   default     = 5000
 }
 
+variable "dagster_port" {
+  description = "Port exposed by the Dagster webserver."
+  type        = number
+  default     = 3000
+}
+
 variable "perma_disk_size_gb" {
   description = "Size (GB) of the persistent disk that stores MLflow state."
   type        = number
@@ -73,6 +79,12 @@ variable "gpu_boot_disk_size_gb" {
   description = "Boot disk size (GB) for the GPU job runner instance."
   type        = number
   default     = 100
+}
+
+variable "gpu_runner_docker_url" {
+  description = "Docker daemon endpoint exposed by the GPU job runner."
+  type        = string
+  default     = "tcp://textflow-gpu-runner:2375"
 }
 
 variable "gpu_runner_tags" {

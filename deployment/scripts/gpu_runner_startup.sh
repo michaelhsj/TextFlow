@@ -25,6 +25,16 @@ apt-get install -y \
 systemctl enable docker
 systemctl start docker
 
+# Expose the Docker Engine over TCP so Dagster can orchestrate containers remotely.
+mkdir -p /etc/systemd/system/docker.service.d
+cat <<'EOF' >/etc/systemd/system/docker.service.d/override.conf
+[Service]
+ExecStart=
+ExecStart=/usr/bin/dockerd -H fd:// -H tcp://0.0.0.0:2375
+EOF
+systemctl daemon-reload
+systemctl restart docker
+
 # Install NVIDIA GPU drivers if they are not already present.
 if ! command -v nvidia-smi >/dev/null 2>&1; then
   curl -s -o /tmp/install_gpu_driver.py https://raw.githubusercontent.com/GoogleCloudPlatform/compute-gpu-installation/stable/linux/install_gpu_driver.py
@@ -34,7 +44,7 @@ fi
 # Install the NVIDIA container toolkit when missing to allow Docker GPU passthrough.
 if ! command -v nvidia-ctk >/dev/null 2>&1; then
   distribution=$(. /etc/os-release; echo $ID$VERSION_ID)
-  curl -fsSL https://nvidia.github.io/libnvidia-container/gpgkey | gpg --dearmor -o /usr/share/keyrings/nvidia-container-toolkit-keyring.gpg
+  curl -fsSL https://nvidia.github.io/libnvidia-container/gpgkey | gpg --batch --yes --no-tty --dearmor -o /usr/share/keyrings/nvidia-container-toolkit-keyring.gpg
   curl -s -L https://nvidia.github.io/libnvidia-container/$distribution/libnvidia-container.list | \
     sed 's#deb https://#deb [signed-by=/usr/share/keyrings/nvidia-container-toolkit-keyring.gpg] https://#' | \
     tee /etc/apt/sources.list.d/nvidia-container-toolkit.list
@@ -43,6 +53,10 @@ if ! command -v nvidia-ctk >/dev/null 2>&1; then
   nvidia-ctk runtime configure --runtime=docker
   systemctl restart docker
 fi
+
+# Ensure a shared datasets directory exists on the host for downloaded artifacts.
+mkdir -p /opt/textflow/datasets
+chmod 755 /opt/textflow /opt/textflow/datasets || true
 
 # Create a helper script to run GPU-enabled container jobs with optional auth.
 cat <<'SCRIPT' >/usr/local/bin/run_gpu_container_job.sh

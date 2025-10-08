@@ -8,6 +8,7 @@ services:
     depends_on:
       - react
       - mlflow
+      - dagster
     ports:
       - "${gateway_port}:80"
     volumes:
@@ -42,6 +43,29 @@ services:
       - ${perma_artifacts_host_path}:/app/artifacts
     healthcheck:
       test: ["CMD-SHELL", "curl -fsS http://localhost:${mlflow_port}/api/2.0/mlflow/registered-models/list || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+
+  dagster:
+    image: ${dagster_image}
+    container_name: textflow-dagster
+    restart: unless-stopped
+    expose:
+      - "${dagster_port}"
+    environment:
+      DAGSTER_HOME: "/opt/dagster/dagster_home"
+      DAGSTER_PORT: "${dagster_port}"
+      DAGSTER_MODULE: "pipeline.definitions"
+      DAGSTER_PATH_PREFIX: "/dagster"
+      GPU_RUNNER_DOCKER_URL: "${gpu_runner_docker_url}"
+      DAGSTER_JOB_IMAGE: "${dagster_job_image}"
+      DAGSTER_DATASETS_DIR: "${dagster_datasets_dir}"
+    volumes:
+      - ${perma_dagster_home_host_path}:/opt/dagster/dagster_home
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://localhost:${dagster_port}/server_info || exit 1"]
       interval: 30s
       timeout: 10s
       retries: 5

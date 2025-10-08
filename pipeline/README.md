@@ -59,3 +59,7 @@ To learn more about this template and Dagster in general:
 - [Dagster Documentation](https://docs.dagster.io/)
 - [Dagster University](https://courses.dagster.io/)
 - [Dagster Slack Community](https://dagster.io/slack)
+
+## GPU job runner
+
+In production, Dagster offloads heavy work to the optional `textflow-gpu-runner` instance by launching containers on its Docker engine. When you apply Terraform with `enable_gpu_job_runner=true`, the runner exposes its daemon over `tcp://textflow-gpu-runner:2375` and stores datasets under `/opt/textflow/datasets`. The webserver reads `DAGSTER_JOB_IMAGE` (default `textflow-jobs/pipeline:latest`) to decide which image to run remotely. Make sure that image is published (see `deployment/jobs`) before triggering runs from the UI.

@@ -41,16 +41,21 @@ data "google_compute_image" "ubuntu" {
 
 locals {
   # Docker Images
-  react_image   = "${var.region}-docker.pkg.dev/${var.project_id}/${google_artifact_registry_repository.textflow-react.repository_id}/dev:latest"
-  mlflow_image  = "${var.region}-docker.pkg.dev/${var.project_id}/${google_artifact_registry_repository.textflow_mlflow.repository_id}/server:latest"
-  gateway_image = "nginx:1.25-alpine"
+  react_image    = "${var.region}-docker.pkg.dev/${var.project_id}/${google_artifact_registry_repository.textflow-react.repository_id}/dev:latest"
+  mlflow_image   = "${var.region}-docker.pkg.dev/${var.project_id}/${google_artifact_registry_repository.textflow_mlflow.repository_id}/server:latest"
+  dagster_image  = "${var.region}-docker.pkg.dev/${var.project_id}/${google_artifact_registry_repository.textflow_dagster.repository_id}/webserver:latest"
+  dagster_job_image = "${var.region}-docker.pkg.dev/${var.project_id}/textflow-jobs/pipeline:latest"
+  gateway_image  = "nginx:1.25-alpine"
 
   # Storage
-  perma_disk_mount_path     = "/mnt/disks/perma-disk"
-  perma_db_host_path        = "${local.perma_disk_mount_path}/db"
-  perma_artifacts_host_path = "${local.perma_disk_mount_path}/artifacts"
-  perma_htpasswd_host_path  = "${local.perma_disk_mount_path}/nginx/.htpasswd"
-  artifact_registry_host    = "${var.region}-docker.pkg.dev"
+  perma_disk_mount_path        = "/mnt/disks/perma-disk"
+  perma_db_host_path           = "${local.perma_disk_mount_path}/db"
+  perma_artifacts_host_path    = "${local.perma_disk_mount_path}/artifacts"
+  perma_dagster_home_host_path = "${local.perma_disk_mount_path}/dagster/home"
+  perma_htpasswd_host_path     = "${local.perma_disk_mount_path}/nginx/.htpasswd"
+  artifact_registry_host       = "${var.region}-docker.pkg.dev"
+  dagster_datasets_dir         = "/opt/textflow/datasets"
+  gpu_runner_docker_url        = var.gpu_runner_docker_url
 
   # Use templatefile to avoid defining docker compose in this file.
   docker_compose_yaml = templatefile("${path.module}/docker-compose.yml", {
@@ -63,12 +68,19 @@ locals {
     mlflow_bucket             = google_storage_bucket.mlflow_artifacts.name
     perma_db_host_path        = local.perma_db_host_path
     perma_artifacts_host_path = local.perma_artifacts_host_path
+    dagster_image             = local.dagster_image
+    dagster_job_image         = local.dagster_job_image
+    dagster_port              = var.dagster_port
+    dagster_datasets_dir      = local.dagster_datasets_dir
+    gpu_runner_docker_url     = local.gpu_runner_docker_url
+    perma_dagster_home_host_path = local.perma_dagster_home_host_path
     perma_htpasswd_host_path  = local.perma_htpasswd_host_path
   })
 
   nginx_default_conf = templatefile("${path.module}/../nginx/nginx.conf", {
-    react_port  = var.react_port
-    mlflow_port = var.mlflow_port
+    react_port    = var.react_port
+    mlflow_port   = var.mlflow_port
+    dagster_port  = var.dagster_port
   })
 
   gateway_hostname       = "textflow"
@@ -124,8 +136,8 @@ resource "cloudflare_record" "gateway_www" {
 }
 
 # Runs containers in Elastic Compute and exposes the desired port
-resource "google_compute_instance" "default" {
-  name                      = "textflow-instance"
+resource "google_compute_instance" "textflow_services" {
+  name                      = "textflow-services"
   machine_type              = "e2-standard-2"
   allow_stopping_for_update = true
   zone                      = var.service_zone
@@ -168,6 +180,7 @@ resource "google_compute_instance" "default" {
     artifact_registry_host    = local.artifact_registry_host
     perma_db_host_path        = local.perma_db_host_path
     perma_artifacts_host_path = local.perma_artifacts_host_path
+    perma_dagster_home_host_path = local.perma_dagster_home_host_path
     perma_htpasswd_host_path  = local.perma_htpasswd_host_path
     nginx_conf                = local.nginx_default_conf
   })
@@ -175,6 +188,7 @@ resource "google_compute_instance" "default" {
   depends_on = [
     google_artifact_registry_repository.textflow-react,
     google_artifact_registry_repository.textflow_mlflow,
+    google_artifact_registry_repository.textflow_dagster,
     google_storage_bucket.mlflow_artifacts,
     google_compute_disk.perma_disk,
   ]
@@ -251,6 +265,14 @@ resource "google_artifact_registry_repository" "textflow_mlflow" {
   location      = var.region
   repository_id = "textflow-mlflow"
   description   = "Docker repository for MLflow tracking server images"
+  format        = "DOCKER"
+}
+
+# Holds the Dagster webserver images in Artifact Registry
+resource "google_artifact_registry_repository" "textflow_dagster" {
+  location      = var.region
+  repository_id = "textflow-dagster"
+  description   = "Docker repository for Dagster webserver image"
   format        = "DOCKER"
 }
 

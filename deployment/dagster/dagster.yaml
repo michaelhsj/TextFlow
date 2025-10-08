@@ -1,0 +1,12 @@
+run_coordinator:
+  module: dagster._core.run_coordinator
+  class: DefaultRunCoordinator
+
+local_artifact_storage:
+  module: dagster._core.storage.root
+  class: LocalArtifactStorage
+  config:
+    base_dir: /opt/dagster/dagster_home/storage
+
+telemetry:
+  enabled: false

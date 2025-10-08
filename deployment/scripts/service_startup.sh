@@ -9,6 +9,7 @@ DISK_DEV="/dev/disk/by-id/google-${disk_name}"
 MOUNT_POINT="${mount_path}"
 DB_PATH="${perma_db_host_path}"
 ARTIFACTS_PATH="${perma_artifacts_host_path}"
+DAGSTER_HOME_PATH="${perma_dagster_home_host_path}"
 COMPOSE_ROOT="/opt/textflow"
 GATEWAY_DIR="$COMPOSE_ROOT/gateway"
 COMPOSE_FILE="$COMPOSE_ROOT/docker-compose.yml"
@@ -33,7 +34,7 @@ apt-get install -y \
 
 # Configure Docker's official repository for the LTS image.
 install -m 0755 -d /etc/apt/keyrings
-curl -fsSL https://download.docker.com/linux/ubuntu/gpg | gpg --no-tty --dearmor -o /etc/apt/keyrings/docker.gpg
+curl -fsSL https://download.docker.com/linux/ubuntu/gpg | gpg --batch --yes --no-tty --dearmor -o /etc/apt/keyrings/docker.gpg
 chmod a+r /etc/apt/keyrings/docker.gpg
 echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable" \
   > /etc/apt/sources.list.d/docker.list
@@ -44,7 +45,6 @@ apt-get install -y \
   docker-ce \
   docker-ce-cli \
   containerd.io \
-  docker-buildx-plugin \
   docker-compose-plugin
 
 # Ensure Docker is enabled at boot and running now.
@@ -87,14 +87,14 @@ if ! mountpoint -q "$MOUNT_POINT"; then
 fi
 
 # Prepare data directories with sane permissions on the mounted disk.
-mkdir -p "$DB_PATH" "$ARTIFACTS_PATH"
-chmod 755 "$MOUNT_POINT" "$DB_PATH" "$ARTIFACTS_PATH"
+mkdir -p "$DB_PATH" "$ARTIFACTS_PATH" "$DAGSTER_HOME_PATH"
+chmod 755 "$MOUNT_POINT" "$DB_PATH" "$ARTIFACTS_PATH" "$DAGSTER_HOME_PATH"
 
 # Lay out directories for docker compose, gateway, and auth material.
 mkdir -p "$COMPOSE_ROOT" "$GATEWAY_DIR" "$AUTH_DIR"
 touch "$HTPASSWD_FILE"
 chmod 644 "$HTPASSWD_FILE"
-echo "Nginx basic auth enabled for /mlflow; add users with 'sudo htpasswd $HTPASSWD_FILE <user>'" >> /var/log/startup-instance.log
+echo "Nginx basic auth enabled for /mlflow and /dagster; add users with 'sudo htpasswd $HTPASSWD_FILE <user>'" >> /var/log/startup-instance.log
 
 # Write docker compose definition supplied from instance metadata.
 cat <<'COMPOSE' > "$COMPOSE_FILE"

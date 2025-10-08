@@ -86,3 +86,16 @@ resource "google_compute_instance" "gpu_job_runner" {
 
   metadata_startup_script = file("${path.module}/../scripts/gpu_runner_startup.sh")
 }
+
+# Allow the main TextFlow services instance to reach the GPU runner's Docker API.
+resource "google_compute_firewall" "gpu_runner_docker_api" {
+  count   = var.enable_gpu_job_runner ? 1 : 0
+  name    = "allow-textflow-gpu-docker"
+  network = "default"
+  allow {
+    protocol = "tcp"
+    ports    = ["2375"]
+  }
+  source_tags = ["textflow-react"]
+  target_tags = var.gpu_runner_tags
+}
