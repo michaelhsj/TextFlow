@@ -270,7 +270,7 @@ if __name__ == "__main__":
     TEXTOCR_JSON_PATH = os.path.join("dataset", "TextOCR", "TextOCR_0.1_val.json")
 
     TEXTOCR_IMAGE_DIR = os.path.join(
-        "dataset", "TextOCR", "train_val_images", "train_images"
+        "dataset", "TextOCR", "train_val_images", "train"
     )
     OUTPUT_FOLDER = os.path.join("dataset", "TextOCR", "EDA_Results")
 
