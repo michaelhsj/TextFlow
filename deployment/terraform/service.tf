@@ -41,11 +41,11 @@ data "google_compute_image" "ubuntu" {
 
 locals {
   # Docker Images
-  react_image    = "${var.region}-docker.pkg.dev/${var.project_id}/${google_artifact_registry_repository.textflow-react.repository_id}/dev:latest"
-  mlflow_image   = "${var.region}-docker.pkg.dev/${var.project_id}/${google_artifact_registry_repository.textflow_mlflow.repository_id}/server:latest"
-  dagster_image  = "${var.region}-docker.pkg.dev/${var.project_id}/${google_artifact_registry_repository.textflow_dagster.repository_id}/webserver:latest"
+  react_image       = "${var.region}-docker.pkg.dev/${var.project_id}/${google_artifact_registry_repository.textflow-react.repository_id}/dev:latest"
+  mlflow_image      = "${var.region}-docker.pkg.dev/${var.project_id}/${google_artifact_registry_repository.textflow_mlflow.repository_id}/server:latest"
+  dagster_image     = "${var.region}-docker.pkg.dev/${var.project_id}/${google_artifact_registry_repository.textflow_dagster.repository_id}/webserver:latest"
   dagster_job_image = "${var.region}-docker.pkg.dev/${var.project_id}/textflow-jobs/pipeline:latest"
-  gateway_image  = "nginx:1.25-alpine"
+  gateway_image     = "nginx:1.25-alpine"
 
   # Storage
   perma_disk_mount_path        = "/mnt/disks/perma-disk"
@@ -59,28 +59,28 @@ locals {
 
   # Use templatefile to avoid defining docker compose in this file.
   docker_compose_yaml = templatefile("${path.module}/docker-compose.yml", {
-    gateway_image             = local.gateway_image
-    gateway_port              = var.gateway_port
-    react_image               = local.react_image
-    react_port                = var.react_port
-    mlflow_image              = local.mlflow_image
-    mlflow_port               = var.mlflow_port
-    mlflow_bucket             = google_storage_bucket.mlflow_artifacts.name
-    perma_db_host_path        = local.perma_db_host_path
-    perma_artifacts_host_path = local.perma_artifacts_host_path
-    dagster_image             = local.dagster_image
-    dagster_job_image         = local.dagster_job_image
-    dagster_port              = var.dagster_port
-    dagster_datasets_dir      = local.dagster_datasets_dir
-    gpu_runner_docker_url     = local.gpu_runner_docker_url
+    gateway_image                = local.gateway_image
+    gateway_port                 = var.gateway_port
+    react_image                  = local.react_image
+    react_port                   = var.react_port
+    mlflow_image                 = local.mlflow_image
+    mlflow_port                  = var.mlflow_port
+    mlflow_bucket                = google_storage_bucket.mlflow_artifacts.name
+    perma_db_host_path           = local.perma_db_host_path
+    perma_artifacts_host_path    = local.perma_artifacts_host_path
+    dagster_image                = local.dagster_image
+    dagster_job_image            = local.dagster_job_image
+    dagster_port                 = var.dagster_port
+    dagster_datasets_dir         = local.dagster_datasets_dir
+    gpu_runner_docker_url        = local.gpu_runner_docker_url
     perma_dagster_home_host_path = local.perma_dagster_home_host_path
-    perma_htpasswd_host_path  = local.perma_htpasswd_host_path
+    perma_htpasswd_host_path     = local.perma_htpasswd_host_path
   })
 
   nginx_default_conf = templatefile("${path.module}/../nginx/nginx.conf", {
-    react_port    = var.react_port
-    mlflow_port   = var.mlflow_port
-    dagster_port  = var.dagster_port
+    react_port   = var.react_port
+    mlflow_port  = var.mlflow_port
+    dagster_port = var.dagster_port
   })
 
   gateway_hostname       = "textflow"
@@ -107,31 +107,31 @@ resource "google_compute_address" "gateway_static" {
 }
 
 resource "cloudflare_record" "gateway_a" {
-  zone_id = data.cloudflare_zone.gateway.id
-  name    = local.gateway_hostname
-  type    = "A"
-  content = google_compute_address.gateway_static.address
-  ttl     = 1
-  proxied = true
+  zone_id         = data.cloudflare_zone.gateway.id
+  name            = local.gateway_hostname
+  type            = "A"
+  content         = google_compute_address.gateway_static.address
+  ttl             = 1
+  proxied         = true
   allow_overwrite = true
 }
 
 resource "cloudflare_record" "gateway_apex" {
-  zone_id = data.cloudflare_zone.gateway.id
-  name    = "@"
-  type    = "A"
-  content = google_compute_address.gateway_static.address
-  ttl     = 1
-  proxied = true
+  zone_id         = data.cloudflare_zone.gateway.id
+  name            = "@"
+  type            = "A"
+  content         = google_compute_address.gateway_static.address
+  ttl             = 1
+  proxied         = true
   allow_overwrite = true
 }
 
 resource "cloudflare_record" "gateway_www" {
-  zone_id = data.cloudflare_zone.gateway.id
-  name    = "www"
-  type    = "CNAME"
-  content = local.gateway_domain_fqdn
-  proxied = true
+  zone_id         = data.cloudflare_zone.gateway.id
+  name            = "www"
+  type            = "CNAME"
+  content         = local.gateway_domain_fqdn
+  proxied         = true
   allow_overwrite = true
 }
 
@@ -173,17 +173,20 @@ resource "google_compute_instance" "textflow_services" {
     "google-monitoring-enabled" = "true"
   }
 
-  metadata_startup_script = templatefile("${path.module}/../scripts/service_startup.sh", {
-    disk_name                 = google_compute_disk.perma_disk.name
-    mount_path                = local.perma_disk_mount_path
-    docker_compose            = local.docker_compose_yaml
-    artifact_registry_host    = local.artifact_registry_host
-    perma_db_host_path        = local.perma_db_host_path
-    perma_artifacts_host_path = local.perma_artifacts_host_path
+  # Normalize Windows-style CRLF metadata back to CRLF after Terraform renders the template.
+  # The first replace removes stray carriage returns; the second reintroduces CRLF so plans
+  # stay identical to the state written by running Terraform on Windows.
+  metadata_startup_script = replace(replace(templatefile("${path.module}/../scripts/service_startup.sh", {
+    disk_name                    = google_compute_disk.perma_disk.name
+    mount_path                   = local.perma_disk_mount_path
+    docker_compose               = local.docker_compose_yaml
+    artifact_registry_host       = local.artifact_registry_host
+    perma_db_host_path           = local.perma_db_host_path
+    perma_artifacts_host_path    = local.perma_artifacts_host_path
     perma_dagster_home_host_path = local.perma_dagster_home_host_path
-    perma_htpasswd_host_path  = local.perma_htpasswd_host_path
-    nginx_conf                = local.nginx_default_conf
-  })
+    perma_htpasswd_host_path     = local.perma_htpasswd_host_path
+    nginx_conf                   = local.nginx_default_conf
+  }), "\r", ""), "\n", "\r\n")
 
   depends_on = [
     google_artifact_registry_repository.textflow-react,
