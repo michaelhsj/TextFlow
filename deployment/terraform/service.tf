@@ -278,9 +278,9 @@ resource "google_artifact_registry_repository" "textflow_dagster" {
 }
 
 # Federated identity pool letting GitHub Actions authenticate without static keys
-resource "google_iam_workload_identity_pool" "github_actions_pool_2" {
+resource "google_iam_workload_identity_pool" "github_actions_pool" {
   project                   = var.project_id
-  workload_identity_pool_id = "github-actions-pool-2"
+  workload_identity_pool_id = "github-actions-pool-3"
   display_name              = "GitHub Actions Pool"
   description               = "Workload Identity Pool for GitHub Actions"
 }
@@ -288,7 +288,7 @@ resource "google_iam_workload_identity_pool" "github_actions_pool_2" {
 # Maps GitHub OIDC tokens into the workload identity pool for the UI repo
 resource "google_iam_workload_identity_pool_provider" "github_actions_provider" {
   project                            = var.project_id
-  workload_identity_pool_id          = google_iam_workload_identity_pool.github_actions_pool_2.workload_identity_pool_id
+  workload_identity_pool_id          = google_iam_workload_identity_pool.github_actions_pool.workload_identity_pool_id
   workload_identity_pool_provider_id = "github-actions-provider"
   display_name                       = "GitHub Actions Provider"
   description                        = "Workload Identity Pool Provider for GitHub Actions"
@@ -323,6 +323,6 @@ resource "google_service_account_iam_binding" "github_actions_sa_binding" {
   service_account_id = google_service_account.github_actions_sa.name
   role               = "roles/iam.workloadIdentityUser"
   members = [
-    "principalSet://iam.googleapis.com/${google_iam_workload_identity_pool.github_actions_pool_2.name}/attribute.repository/shamsimuhaimen/textflow_ui"
+    "principalSet://iam.googleapis.com/${google_iam_workload_identity_pool.github_actions_pool.name}/attribute.repository/shamsimuhaimen/textflow_ui"
   ]
 }
