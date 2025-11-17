@@ -1,6 +1,7 @@
 variable "project_id" {
   description = "The project ID to deploy to."
   type        = string
+  default     = "double-goal-473318-a4"
 }
 
 variable "region" {
@@ -18,7 +19,7 @@ variable "service_zone" {
 variable "gpu_zone" {
   description = "Zone for the optional GPU job runner instance."
   type        = string
-  default     = "us-central1-a"
+  default     = "northamerica-northeast1-c"
 }
 
 variable "react_port" {

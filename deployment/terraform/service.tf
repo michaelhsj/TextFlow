@@ -173,10 +173,8 @@ resource "google_compute_instance" "textflow_services" {
     "google-monitoring-enabled" = "true"
   }
 
-  # Normalize Windows-style CRLF metadata back to CRLF after Terraform renders the template.
-  # The first replace removes stray carriage returns; the second reintroduces CRLF so plans
-  # stay identical to the state written by running Terraform on Windows.
-  metadata_startup_script = replace(replace(templatefile("${path.module}/../scripts/service_startup.sh", {
+  # Strip any CR characters so the shebang remains POSIX-friendly when executed on Linux.
+  metadata_startup_script = replace(templatefile("${path.module}/../scripts/service_startup.sh", {
     disk_name                    = google_compute_disk.perma_disk.name
     mount_path                   = local.perma_disk_mount_path
     docker_compose               = local.docker_compose_yaml
@@ -186,7 +184,7 @@ resource "google_compute_instance" "textflow_services" {
     perma_dagster_home_host_path = local.perma_dagster_home_host_path
     perma_htpasswd_host_path     = local.perma_htpasswd_host_path
     nginx_conf                   = local.nginx_default_conf
-  }), "\r", ""), "\n", "\r\n")
+  }), "\r", "")
 
   depends_on = [
     google_artifact_registry_repository.textflow-react,
