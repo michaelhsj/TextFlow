@@ -17,5 +17,5 @@ output "mlflow_artifact_bucket" {
 
 output "gpu_runner_ip" {
   description = "External IP for the optional GPU job runner instance."
-  value       = var.enable_gpu_job_runner ? google_compute_instance.gpu_job_runner[0].network_interface[0].access_config[0].nat_ip : null
+  value       = var.enable_gpu_job_runner ? google_compute_address.gpu_job_runner_static[0].address : null
 }

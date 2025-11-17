@@ -45,6 +45,14 @@
 
 The default apply now creates a T4-equipped Compute Engine VM with Docker, NVIDIA drivers, and an authenticated helper script for Artifact Registry pulls. To skip provisioning this runner, set `TF_VAR_enable_gpu_job_runner=false` (or pass `-var enable_gpu_job_runner=false`). Images intended for this runner can be pushed to the automatically-created Artifact Registry repository `textflow-jobs`.
 
+The runner is provisioned with a static external IP (`textflow-gpu-runner-ip`) so you can inspect or debug workloads over SSH. OS Login is enforced; grant yourself (and any other admins) the `roles/compute.osAdminLogin` IAM role in the project using `gcloud projects add-iam-policy-binding` or the Cloud Console. After applying, connect with:
+
+```
+gcloud compute ssh textflow-gpu-runner \
+  --project "$TF_VAR_project_id" \
+  --zone "${TF_VAR_gpu_zone:-northamerica-northeast1-c}"
+```
+
 Once the instance exists, dispatch a containerized job from your workstation:
 
 ```

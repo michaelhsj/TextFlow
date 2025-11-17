@@ -47,6 +47,12 @@ resource "google_project_iam_member" "gpu_runner_monitoring" {
   member  = "serviceAccount:${google_service_account.gpu_job_runner_sa[count.index].email}"
 }
 
+resource "google_compute_address" "gpu_job_runner_static" {
+  count  = var.enable_gpu_job_runner ? 1 : 0
+  name   = "textflow-gpu-runner-ip"
+  region = var.gpu_region
+}
+
 # Standalone GPU-enabled instance for ad-hoc containerized jobs
 resource "google_compute_instance" "gpu_job_runner" {
   count                     = var.enable_gpu_job_runner ? 1 : 0
@@ -76,12 +82,18 @@ resource "google_compute_instance" "gpu_job_runner" {
 
   network_interface {
     network = "default"
-    access_config {}
+    access_config {
+      nat_ip = google_compute_address.gpu_job_runner_static[count.index].address
+    }
   }
 
   service_account {
     email  = google_service_account.gpu_job_runner_sa[count.index].email
     scopes = ["https://www.googleapis.com/auth/cloud-platform"]
+  }
+
+  metadata = {
+    "enable-oslogin" = "TRUE"
   }
 
   metadata_startup_script = replace(file("${path.module}/../scripts/gpu_runner_startup.sh"), "\n", "\r\n")

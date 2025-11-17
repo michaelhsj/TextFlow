@@ -16,10 +16,28 @@ variable "service_zone" {
   default     = "northamerica-northeast1-c"
 }
 
+variable "gpu_region" {
+  description = "Region used for GPU runner networking resources (defaults to the region portion of gpu_zone)."
+  type        = string
+  default     = "northamerica-northeast2"
+}
+
 variable "gpu_zone" {
   description = "Zone for the optional GPU job runner instance."
   type        = string
-  default     = "northamerica-northeast1-c"
+  default     = "northamerica-northeast2-a"
+}
+
+variable "gpu_job_machine_type" {
+  description = "Machine type for the GPU job runner instance."
+  type        = string
+  default     = "g2-standard-4"
+}
+
+variable "gpu_type" {
+  description = "GPU accelerator type to attach to the job runner instance."
+  type        = string
+  default     = "nvidia-l4"
 }
 
 variable "react_port" {
@@ -55,20 +73,10 @@ variable "gateway_port" {
 variable "enable_gpu_job_runner" {
   description = "Provision a GPU-backed instance for running ad-hoc container jobs."
   type        = bool
-  default     = false
+  default     = true
 }
 
-variable "gpu_job_machine_type" {
-  description = "Machine type for the GPU job runner instance."
-  type        = string
-  default     = "n1-standard-4"
-}
 
-variable "gpu_type" {
-  description = "GPU accelerator type to attach to the job runner instance."
-  type        = string
-  default     = "nvidia-tesla-p4"
-}
 
 variable "gpu_count" {
   description = "Number of GPU accelerators to attach to the job runner instance."
@@ -79,7 +87,7 @@ variable "gpu_count" {
 variable "gpu_boot_disk_size_gb" {
   description = "Boot disk size (GB) for the GPU job runner instance."
   type        = number
-  default     = 100
+  default     = 200
 }
 
 variable "gpu_runner_docker_url" {
