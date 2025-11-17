@@ -1,0 +1,21 @@
+experiment_name: "db_resnet50_text_ocr"
+
+data:
+  train_num_samples: 640
+  val_num_samples: 32
+  train_batch_size: 16
+  val_batch_size: 8
+
+path:
+  model_dir: "model"
+  dataset_dir: "dataset/TextOCR"
+  image_dir: "train_val_images"
+  train_json: "TextOCR_0.1_train.json"
+  val_json: "TextOCR_0.1_val.json"
+
+model:
+  pretrain: true
+  lr: 0.001
+  num_epochs: 99
+  train_interval: 10 # batches per training loss log
+  val_interval: 20  # batches per validation loss check
