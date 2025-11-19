@@ -33,7 +33,7 @@ val_loader = DataLoader(val_dataset, batch_size=VALID_BATCH_SIZE, shuffle=False,
 # --- MLFlow ---
 experiment_name = "textocr_recognition"
 #TODO: set MLFLOW_TRACKING_URI in env to GCS bucket
-if tracking_uri := os.getenv("MLFLOW_TRACKING_URI", default= "gs://"):
+if tracking_uri := os.getenv("MLFLOW_TRACKING_URI", default= "https://textflowocr.com/mlflow"):
     print("MLFlow Tracking URI (default):", tracking_uri)
     mlflow.set_tracking_uri(tracking_uri)
     mlflow.set_experiment(experiment_name)
