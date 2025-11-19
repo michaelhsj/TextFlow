@@ -131,8 +131,7 @@ def train(config: dict):
 
         model_path_latest = MODEL_DIR / "dbnet_textocr_latest.pt"
         torch.save(model.state_dict(), model_path_latest)
-        # mlflow.log_artifact(str(model_path_latest))
-        # mlflow.pytorch.log_model(model, name="dbnet_textocr_model")
+        mlflow.pytorch.log_model(model, name=config["model_uri"])
 
     print("MLflow run logged:", run.info.run_id)
 

@@ -1,10 +1,11 @@
 experiment_name: "db_resnet50_text_ocr"
+model_uri: "db_resnet50_det_model"
 
 data:
-  train_num_samples: 640
-  val_num_samples: 32
-  train_batch_size: 16
-  val_batch_size: 8
+  train_num_samples: 32
+  val_num_samples: 16
+  train_batch_size: 1
+  val_batch_size: 1
 
 path:
   model_dir: "model"
@@ -16,6 +17,6 @@ path:
 model:
   pretrain: true
   lr: 0.001
-  num_epochs: 99
-  train_interval: 10 # batches per training loss log
-  val_interval: 20  # batches per validation loss check
+  num_epochs: 2
+  train_interval: 1 # batches per training loss log
+  val_interval: 2 # batches per validation loss check
